@@ -6,6 +6,10 @@ import rl "vendor:raylib"
 
 WINDOW_HEIGHT : i32 : 540
 WINDOW_WIDTH : i32 : 960
+BLOCK_SIZE : i32 : 20
+VERTICAL_COLUMNS :: 10
+HORIZONTAL_COLUMNS :: 20
+SIMULATION_DELAY : f32 : 1 // em segundos
 
 // NOTE: pode ser enum u16
 TetrominoType :: enum {
@@ -22,18 +26,9 @@ Tetromino :: struct {
   orientation: TetrominoOrientation,
 }
 
-
-//var ROTATION_TABLE = map[TetrominoEnum][4]uint16{
-//	I: {setGrid([4]uint8{4, 5, 6, 7}), setGrid([4]uint8{2, 6, 10, 14}), setGrid([4]uint8{8, 9, 10, 11}), setGrid([4]uint8{1, 5, 9, 13})},
-//	J: {setGrid([4]uint8{4, 5, 6, 10}), setGrid([4]uint8{1, 5, 8, 9}), setGrid([4]uint8{0, 4, 5, 6}), setGrid([4]uint8{1, 2, 5, 9})},
-//	L: {setGrid([4]uint8{2, 4, 5, 6}), setGrid([4]uint8{1, 5, 9, 10}), setGrid([4]uint8{4, 5, 6, 8}), setGrid([4]uint8{0, 1, 5, 9})},
-//	O: {setGrid([4]uint8{1, 2, 5, 6}), setGrid([4]uint8{1, 2, 5, 6}), setGrid([4]uint8{1, 2, 5, 6}), setGrid([4]uint8{1, 2, 5, 6})},
-//	S: {setGrid([4]uint8{1, 2, 4, 5}), setGrid([4]uint8{1, 5, 6, 10}), setGrid([4]uint8{5, 6, 8, 9}), setGrid([4]uint8{0, 4, 5, 9})},
-//	Z: {setGrid([4]uint8{0, 1, 5, 6}), setGrid([4]uint8{2, 5, 6, 9}), setGrid([4]uint8{4, 5, 9, 10}), setGrid([4]uint8{1, 4, 5, 8})},
-// T: {setGrid([4]uint8{1, 4, 5, 6}), setGrid([4]uint8{1, 5, 9, 6}), setGrid([4]uint8{4, 5, 6, 9}), setGrid([4]uint8{1, 4, 5, 9})},
-//}
-
-
+Board :: struct {
+  pieces: [HORIZONTAL_COLUMNS][VERTICAL_COLUMNS]rl.Color
+}
 
 ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
   .T = {
@@ -130,28 +125,47 @@ ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
   },
 }
 
-draw_tetromino :: proc(t: Tetromino, x, y: i32) {
+draw_tetromino :: proc(t: ^Tetromino, x, y: i32) {
   for x_tetromino in 0..<4 {
     for y_tetromino in 0..<4 {
       if ROTATION_TABLE[t.type][t.orientation] & (1 << u32(((3 - y_tetromino) * 4) + (3 - x_tetromino))) != 0 {
-        rl.DrawRectangle(x + i32(x_tetromino * 20), y + i32(y_tetromino * 20), 20, 20, rl.WHITE)
+        rl.DrawRectangle(x + (i32(x_tetromino) * BLOCK_SIZE), y + (i32(y_tetromino) * BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE, rl.WHITE)
       }
     }
   }
+}
+
+draw_board_frame :: proc(x, y: i32) {
+
+  for i in 0..=VERTICAL_COLUMNS {
+    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.GRAY)
+  }
+
+  for i in 0..=HORIZONTAL_COLUMNS {
+    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), rl.GRAY)
+  }
+
+  // linha da esquerda
+  rl.DrawLine(x, y, x, y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+
+  // linha da direita
+  rl.DrawLine(x + (VERTICAL_COLUMNS * BLOCK_SIZE), y, x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+  
+  // linha do fundo
+  rl.DrawLine(x, y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+
+}
+
+draw_board :: proc(board: ^Board, x, y: i32) {
+  draw_board_frame(x,y)
 }
 
 rotate_orientation :: proc(rotation: TetrominoOrientation) -> TetrominoOrientation {
   return TetrominoOrientation((u8(rotation) + 1) % len(TetrominoOrientation))
 }
 
-/*
-
-###.
-###.
-###.
-###.
-
-*/
+step :: proc () {
+}
 
 main :: proc () {
 
@@ -163,6 +177,9 @@ main :: proc () {
     orientation = .LEFT,    
   }
 
+  simulation_delay_cooldown : f32 = 0
+  board := Board {}
+
   rl.SetTargetFPS(60)
   for !rl.WindowShouldClose() {
     if rl.IsKeyPressed(rl.KeyboardKey.Q) do break
@@ -170,6 +187,14 @@ main :: proc () {
       teste_tetromino.type = TetrominoType((u8(teste_tetromino.type) + 1) % len(TetrominoType))
     }
     if rl.IsKeyPressed(rl.KeyboardKey.R) do teste_tetromino.orientation = rotate_orientation(teste_tetromino.orientation)
+
+    simulation_delay_cooldown += rl.GetFrameTime()
+    if simulation_delay_cooldown > SIMULATION_DELAY {
+      simulation_delay_cooldown = 0
+      step()
+    }
+
+    // NOTE: simular
 
     rl.BeginDrawing()
     rl.ClearBackground(rl.BLACK)
@@ -183,7 +208,9 @@ main :: proc () {
     }
     // remover
 
-    draw_tetromino(teste_tetromino, 10, 20)
+    draw_board(&board, 50, 50)
+    // TODO: remover daqui e colocar dentro do draw_board
+    draw_tetromino(&teste_tetromino, 50, 50)
 
     rl.EndDrawing()
   }
