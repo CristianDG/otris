@@ -6,6 +6,7 @@ import rl "vendor:raylib"
 
 WINDOW_HEIGHT : i32 : 540
 WINDOW_WIDTH : i32 : 960
+BOARD_POSITION : [2]i32 : { 250, 50 }
 BLOCK_SIZE : i32 : 20
 VERTICAL_COLUMNS :: 10
 HORIZONTAL_COLUMNS :: 20
@@ -28,6 +29,18 @@ Tetromino :: struct {
 
 Board :: struct {
   pieces: [HORIZONTAL_COLUMNS][VERTICAL_COLUMNS]rl.Color
+}
+
+GAME_STATE : struct {
+  score: u64,
+  board: Board,
+  next_tetrominos: [5]TetrominoType,
+  change_tetromino: Maybe(TetrominoType),
+  current_tetromino: Tetromino,
+  tetromino_position: [2]i32,
+} = {
+  score = 0,
+  board = Board{},
 }
 
 ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
@@ -125,7 +138,12 @@ ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
   },
 }
 
-draw_tetromino :: proc(t: ^Tetromino, x, y: i32) {
+tetromino_on_board_draw :: proc(t: ^Tetromino, relative_position: [2]i32) {
+  pos := BOARD_POSITION + (relative_position * BLOCK_SIZE)
+  tetromino_draw(t, pos.x, pos.y)
+}
+
+tetromino_draw :: proc(t: ^Tetromino, x, y: i32) {
   for x_tetromino in 0..<4 {
     for y_tetromino in 0..<4 {
       if ROTATION_TABLE[t.type][t.orientation] & (1 << u32(((3 - y_tetromino) * 4) + (3 - x_tetromino))) != 0 {
@@ -135,7 +153,7 @@ draw_tetromino :: proc(t: ^Tetromino, x, y: i32) {
   }
 }
 
-draw_board_frame :: proc(x, y: i32) {
+board_frame_draw :: proc(x, y: i32) {
 
   for i in 0..=VERTICAL_COLUMNS {
     rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.GRAY)
@@ -156,15 +174,21 @@ draw_board_frame :: proc(x, y: i32) {
 
 }
 
-draw_board :: proc(board: ^Board, x, y: i32) {
-  draw_board_frame(x,y)
+board_draw :: proc(board: ^Board) {
+  board_frame_draw(BOARD_POSITION.x, BOARD_POSITION.y)
 }
 
 rotate_orientation :: proc(rotation: TetrominoOrientation) -> TetrominoOrientation {
   return TetrominoOrientation((u8(rotation) + 1) % len(TetrominoOrientation))
 }
 
+can_place :: proc(board: ^Board, t: Tetromino) -> bool {
+
+  return false;
+}
+
 step :: proc () {
+
 }
 
 main :: proc () {
@@ -172,21 +196,20 @@ main :: proc () {
   rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OTris")
   defer rl.CloseWindow()
 
-  teste_tetromino := Tetromino {
+  GAME_STATE.current_tetromino = Tetromino {
     type = .Z,
-    orientation = .LEFT,    
+    orientation = .LEFT,
   }
 
   simulation_delay_cooldown : f32 = 0
-  board := Board {}
 
   rl.SetTargetFPS(60)
   for !rl.WindowShouldClose() {
     if rl.IsKeyPressed(rl.KeyboardKey.Q) do break
     if rl.IsKeyPressed(rl.KeyboardKey.C) {
-      teste_tetromino.type = TetrominoType((u8(teste_tetromino.type) + 1) % len(TetrominoType))
+      GAME_STATE.current_tetromino.type = TetrominoType((u8(GAME_STATE.current_tetromino.type) + 1) % len(TetrominoType))
     }
-    if rl.IsKeyPressed(rl.KeyboardKey.R) do teste_tetromino.orientation = rotate_orientation(teste_tetromino.orientation)
+    if rl.IsKeyPressed(rl.KeyboardKey.R) do GAME_STATE.current_tetromino.orientation = rotate_orientation(GAME_STATE.current_tetromino.orientation)
 
     simulation_delay_cooldown += rl.GetFrameTime()
     if simulation_delay_cooldown > SIMULATION_DELAY {
@@ -200,17 +223,16 @@ main :: proc () {
     rl.ClearBackground(rl.BLACK)
 
     // TODO: remover
-    type_str, type_ok := fmt.enum_value_to_string(teste_tetromino.type)
-    orientation_str, orientation_ok := fmt.enum_value_to_string(teste_tetromino.orientation)
+    type_str, type_ok := fmt.enum_value_to_string(GAME_STATE.current_tetromino.type)
+    orientation_str, orientation_ok := fmt.enum_value_to_string(GAME_STATE.current_tetromino.orientation)
     if type_ok && orientation_ok {
       rl.DrawText(strings.clone_to_cstring(type_str), 0, 0, 10, rl.RAYWHITE)
       rl.DrawText(strings.clone_to_cstring(orientation_str), 20, 0, 10, rl.RAYWHITE)
     }
     // remover
 
-    draw_board(&board, 50, 50)
-    // TODO: remover daqui e colocar dentro do draw_board
-    draw_tetromino(&teste_tetromino, 50, 50)
+    board_draw(&GAME_STATE.board)
+    tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position + 1)
 
     rl.EndDrawing()
   }
