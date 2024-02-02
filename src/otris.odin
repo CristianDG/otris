@@ -2,14 +2,16 @@ package otris
 
 import "core:fmt"
 import "core:strings"
+import "core:math/rand"
 import rl "vendor:raylib"
 
 WINDOW_HEIGHT : i32 : 540
 WINDOW_WIDTH : i32 : 960
 BOARD_POSITION : [2]i32 : { 250, 50 }
 BLOCK_SIZE : i32 : 20
-VERTICAL_COLUMNS :: 10
-HORIZONTAL_COLUMNS :: 20
+MAX_TRIES :: 3
+BOARD_COLUMNS :: 10
+BOARD_LINES :: 20
 SIMULATION_DELAY : f32 : 1 // em segundos
 
 // NOTE: pode ser enum u16
@@ -28,7 +30,8 @@ Tetromino :: struct {
 }
 
 Board :: struct {
-  pieces: [HORIZONTAL_COLUMNS][VERTICAL_COLUMNS]rl.Color
+  // TODO: mudar rl.Color para uma struct Piece ou algo assim
+  pieces: [BOARD_COLUMNS][BOARD_LINES]rl.Color
 }
 
 GAME_STATE : struct {
@@ -38,8 +41,10 @@ GAME_STATE : struct {
   change_tetromino: Maybe(TetrominoType),
   current_tetromino: Tetromino,
   tetromino_position: [2]i32,
+  current_tries: i8,
 } = {
   score = 0,
+  current_tries = MAX_TRIES,
   board = Board{},
 }
 
@@ -138,6 +143,10 @@ ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
   },
 }
 
+u16_get :: proc (value: u16, x, y: int) -> bool{
+  return value & (1 << u32(((3 - y) * 4) + (3 - x))) != 0
+}
+
 tetromino_on_board_draw :: proc(t: ^Tetromino, relative_position: [2]i32) {
   pos := BOARD_POSITION + (relative_position * BLOCK_SIZE)
   tetromino_draw(t, pos.x, pos.y)
@@ -146,8 +155,11 @@ tetromino_on_board_draw :: proc(t: ^Tetromino, relative_position: [2]i32) {
 tetromino_draw :: proc(t: ^Tetromino, x, y: i32) {
   for x_tetromino in 0..<4 {
     for y_tetromino in 0..<4 {
-      if ROTATION_TABLE[t.type][t.orientation] & (1 << u32(((3 - y_tetromino) * 4) + (3 - x_tetromino))) != 0 {
-        rl.DrawRectangle(x + (i32(x_tetromino) * BLOCK_SIZE), y + (i32(y_tetromino) * BLOCK_SIZE), BLOCK_SIZE, BLOCK_SIZE, rl.WHITE)
+      if u16_get(ROTATION_TABLE[t.type][t.orientation], x_tetromino, y_tetromino) {
+        rl.DrawRectangle(
+          x + (i32(x_tetromino) * BLOCK_SIZE),
+          y + (i32(y_tetromino) * BLOCK_SIZE),
+          BLOCK_SIZE, BLOCK_SIZE, rl.WHITE)
       }
     }
   }
@@ -155,26 +167,36 @@ tetromino_draw :: proc(t: ^Tetromino, x, y: i32) {
 
 board_frame_draw :: proc(x, y: i32) {
 
-  for i in 0..=VERTICAL_COLUMNS {
-    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.GRAY)
+  for i in 0..=BOARD_COLUMNS {
+    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.GRAY)
   }
 
-  for i in 0..=HORIZONTAL_COLUMNS {
-    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), rl.GRAY)
+  for i in 0..=BOARD_LINES {
+    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), rl.GRAY)
   }
 
   // linha da esquerda
-  rl.DrawLine(x, y, x, y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+  rl.DrawLine(x, y, x, y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
 
   // linha da direita
-  rl.DrawLine(x + (VERTICAL_COLUMNS * BLOCK_SIZE), y, x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+  rl.DrawLine(x + (BOARD_COLUMNS * BLOCK_SIZE), y, x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
   
   // linha do fundo
-  rl.DrawLine(x, y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), x + (VERTICAL_COLUMNS * BLOCK_SIZE), y + (HORIZONTAL_COLUMNS * BLOCK_SIZE), rl.WHITE)
+  rl.DrawLine(x, y + (BOARD_LINES * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
 
 }
 
 board_draw :: proc(board: ^Board) {
+
+  for line, x in board.pieces {
+    for piece, y in line {
+      rl.DrawRectangle(
+        BOARD_POSITION.x + (i32(x) * BLOCK_SIZE),
+        BOARD_POSITION.y + (i32(y) * BLOCK_SIZE),
+        BLOCK_SIZE, BLOCK_SIZE, piece)
+    }
+  }
+
   board_frame_draw(BOARD_POSITION.x, BOARD_POSITION.y)
 }
 
@@ -182,13 +204,55 @@ rotate_orientation :: proc(rotation: TetrominoOrientation) -> TetrominoOrientati
   return TetrominoOrientation((u8(rotation) + 1) % len(TetrominoOrientation))
 }
 
-can_place :: proc(board: ^Board, t: Tetromino) -> bool {
+// FIXME: bugado demais, na metade da board ta achando que está travado
+can_place :: proc(board: ^Board, t: ^Tetromino, pos: [2]i32 ) -> bool {
+  for x := 0; x < 4; x+=1 {
+    for y := 0; y < 4; y+=1{
+      tetromino_piece_present : bool = u16_get(ROTATION_TABLE[t.type][t.orientation], x, y)
+      hit_bottom := (i32(y) + pos.y) >= BOARD_COLUMNS
 
-  return false;
+      if hit_bottom || (tetromino_piece_present && (board.pieces[int(x)+int(pos.x)][int(y)+int(pos.y)] != (rl.Color{}))) {
+        return false
+      }
+    }
+  }
+
+  return true;
 }
 
-step :: proc () {
+step :: proc (board: ^Board, t: ^Tetromino, pos: ^[2]i32) {
+  if !can_place(board, t, pos^ + {0 , 1}) {
+    GAME_STATE.current_tries -= 1
+    if GAME_STATE.current_tries < 0 {
+      place(board, t, pos^)
+      t^ = tetromino_next()
+      GAME_STATE.current_tries = MAX_TRIES
+    }
+  } else {
+    pos^ += { 0, 1 }
+  }
 
+}
+
+tetromino_next :: proc () -> Tetromino {
+  rng := rand.uint32() % len(TetrominoType)
+  new_type := TetrominoType(rng)
+
+  return Tetromino { orientation = .LEFT, type = new_type }
+}
+
+
+place :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
+  color := rl.Color{ u8(rand.uint32() % 256), u8(rand.uint32() % 256), u8(rand.uint32() % 256), 255 }
+  for x := 0; x < 4; x+=1 {
+    for y := 0; y < 4; y+=1{
+      piece_present : bool = u16_get(ROTATION_TABLE[t.type][t.orientation], x, y)
+
+      if piece_present {
+        board.pieces[int(x)+int(pos.x)][int(y)+int(pos.y)] = color
+      }
+    }
+  }
 }
 
 main :: proc () {
@@ -206,15 +270,25 @@ main :: proc () {
   rl.SetTargetFPS(60)
   for !rl.WindowShouldClose() {
     if rl.IsKeyPressed(rl.KeyboardKey.Q) do break
-    if rl.IsKeyPressed(rl.KeyboardKey.C) {
-      GAME_STATE.current_tetromino.type = TetrominoType((u8(GAME_STATE.current_tetromino.type) + 1) % len(TetrominoType))
-    }
     if rl.IsKeyPressed(rl.KeyboardKey.R) do GAME_STATE.current_tetromino.orientation = rotate_orientation(GAME_STATE.current_tetromino.orientation)
+
+    // debug
+    if rl.IsKeyPressed(rl.KeyboardKey.C) {
+      GAME_STATE.current_tetromino = tetromino_next()
+    }
+    if rl.IsKeyPressed(rl.KeyboardKey.RIGHT) do GAME_STATE.tetromino_position += { 1, 0 }
+    if rl.IsKeyPressed(rl.KeyboardKey.LEFT)  do GAME_STATE.tetromino_position -= { 1, 0 }
+    if rl.IsKeyPressed(rl.KeyboardKey.UP)    do GAME_STATE.tetromino_position -= { 0, 1 }
+    if rl.IsKeyPressed(rl.KeyboardKey.DOWN)  do GAME_STATE.tetromino_position += { 0, 1 }
+    if rl.IsKeyPressed(rl.KeyboardKey.F) do place(&GAME_STATE.board, &GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
+
+
 
     simulation_delay_cooldown += rl.GetFrameTime()
     if simulation_delay_cooldown > SIMULATION_DELAY {
       simulation_delay_cooldown = 0
-      step()
+      // ???
+      step(&GAME_STATE.board, &GAME_STATE.current_tetromino, &GAME_STATE.tetromino_position)
     }
 
     // NOTE: simular
@@ -232,7 +306,7 @@ main :: proc () {
     // remover
 
     board_draw(&GAME_STATE.board)
-    tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position + 1)
+    tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
 
     rl.EndDrawing()
   }
