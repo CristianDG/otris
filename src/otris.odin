@@ -371,9 +371,9 @@ main :: proc () {
     }
     // remover
 
+    tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
     board_draw(&GAME_STATE.board)
     change_tetromino_draw(&GAME_STATE.change_tetromino)
-    tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
 
     rl.EndDrawing()
   }
