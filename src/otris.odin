@@ -318,7 +318,7 @@ place :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
 change_tetromino_draw :: proc (t: ^Maybe(Tetromino)) {
   change_tetromino, ok := t.?
   starting_pos := [2]i32{70, 50}
-  ending_pos := starting_pos + [2]i32{6 * BLOCK_SIZE, 4 * BLOCK_SIZE}
+  ending_pos := starting_pos + {6 * BLOCK_SIZE, 4 * BLOCK_SIZE}
 
   if ok {
     tetromino_draw(&Tetromino{ type = change_tetromino.type, color = change_tetromino.color }, starting_pos.x + BLOCK_SIZE, starting_pos.y + BLOCK_SIZE)
@@ -327,10 +327,20 @@ change_tetromino_draw :: proc (t: ^Maybe(Tetromino)) {
   rl.DrawText("Change", starting_pos.x, starting_pos.y - 25, 20, BOARD_PERIMETER_COLOR)
 
   for i in 1..<6 {
-    rl.DrawLine(starting_pos.x + (i32(i) * BLOCK_SIZE), starting_pos.y, starting_pos.x + (i32(i) * BLOCK_SIZE), ending_pos.y, BOARD_LINE_COLOR)
+    rl.DrawLine(
+      starting_pos.x + (i32(i) * BLOCK_SIZE),
+      starting_pos.y,
+      starting_pos.x + (i32(i) * BLOCK_SIZE),
+      ending_pos.y,
+      BOARD_LINE_COLOR)
   }
   for i in 1..<4 {
-    rl.DrawLine(starting_pos.x, starting_pos.y + (i32(i) * BLOCK_SIZE), ending_pos.x, starting_pos.y + (i32(i) * BLOCK_SIZE), BOARD_LINE_COLOR)
+    rl.DrawLine(
+      starting_pos.x,
+      starting_pos.y + (i32(i) * BLOCK_SIZE),
+      ending_pos.x,
+      starting_pos.y + (i32(i) * BLOCK_SIZE),
+      BOARD_LINE_COLOR)
   }
 
   rl.DrawLine(starting_pos.x, starting_pos.y, ending_pos.x, starting_pos.y, BOARD_PERIMETER_COLOR)
