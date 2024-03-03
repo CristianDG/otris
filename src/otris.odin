@@ -262,12 +262,24 @@ place_and_get :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
   GAME_STATE.current_tries = MAX_TRIES
 }
 
-tetromino_next :: proc () -> Tetromino {
+tetromino_random :: proc () -> Tetromino {
   rng := rand.uint32() % len(TetrominoType)
   new_type := TetrominoType(rng)
   color := rl.Color{ u8(rand.uint32() % 226) + 30, u8(rand.uint32() % 226) + 30, u8(rand.uint32() % 226) + 30, 255 }
 
   return Tetromino { orientation = .LEFT, type = new_type, color = color }
+}
+
+tetromino_next :: proc () -> Tetromino {
+  
+  next := GAME_STATE.next_tetrominos[0]
+  for i := 0; i < len(GAME_STATE.next_tetrominos) - 2; i+=1{
+    GAME_STATE.next_tetrominos[i] = GAME_STATE.next_tetrominos[i+1]
+  }
+
+  GAME_STATE.next_tetrominos[len(GAME_STATE.next_tetrominos)-1] = tetromino_random()
+
+  return next
 }
 
 remove_full_lines :: proc(board: ^Board) {
@@ -413,6 +425,9 @@ main :: proc () {
   rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OTris")
   defer rl.CloseWindow()
 
+  for i in 0..<len(GAME_STATE.next_tetrominos) {
+    GAME_STATE.next_tetrominos[i] = tetromino_random()
+  }
   GAME_STATE.current_tetromino = tetromino_next()
 
   rl.SetTargetFPS(60)
