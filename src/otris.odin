@@ -12,7 +12,6 @@ BLOCK_SIZE : i32 : 20
 MAX_TRIES :: 1
 BOARD_COLUMNS :: 10
 BOARD_LINES :: 20
-SIMULATION_DELAY : f32 : .5 // em segundos
 
 BOARD_LINE_COLOR :: rl.GRAY
 BOARD_PERIMETER_COLOR :: rl.WHITE
@@ -50,12 +49,16 @@ GAME_STATE : struct {
   current_tetromino: Tetromino,
   tetromino_position: TetrominoPos,
   current_tries: i8,
-  recently_changed: bool
+  recently_changed: bool,
+  simulation_delay : f32, // em segundos
+  simulation_cooldown : f32,
 } = {
   score = 0,
   tetromino_position = STARTING_TETROMINO_POSITION,
   current_tries = MAX_TRIES,
   board = Board{},
+  simulation_delay = .5 ,
+  simulation_cooldown = 0,
 }
 
 ROTATION_TABLE := [TetrominoType][TetrominoOrientation]u16 {
@@ -330,6 +333,7 @@ handle_input :: proc () {
   }
   if rl.IsKeyPressed(rl.KeyboardKey.DOWN){
     if can_place(&GAME_STATE.board, &GAME_STATE.current_tetromino, GAME_STATE.tetromino_position + { 0, 1 }){
+      GAME_STATE.simulation_cooldown = 0
       GAME_STATE.tetromino_position += { 0, 1 }
     }
   }
@@ -341,16 +345,15 @@ main :: proc () {
   defer rl.CloseWindow()
 
   GAME_STATE.current_tetromino = tetromino_next()
-  simulation_delay_cooldown : f32 = 0
 
   rl.SetTargetFPS(60)
   for !rl.WindowShouldClose() {
     if rl.IsKeyPressed(rl.KeyboardKey.Q) do break
     handle_input()
 
-    simulation_delay_cooldown += rl.GetFrameTime()
-    if simulation_delay_cooldown > SIMULATION_DELAY {
-      simulation_delay_cooldown = 0
+    GAME_STATE.simulation_cooldown += rl.GetFrameTime()
+    if GAME_STATE.simulation_cooldown > GAME_STATE.simulation_delay {
+      GAME_STATE.simulation_cooldown = 0
       step(&GAME_STATE.board, &GAME_STATE.current_tetromino, &GAME_STATE.tetromino_position)
     }
 
