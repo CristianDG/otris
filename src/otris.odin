@@ -14,6 +14,9 @@ BOARD_COLUMNS :: 10
 BOARD_LINES :: 20
 SIMULATION_DELAY : f32 : .5 // em segundos
 
+BOARD_LINE_COLOR :: rl.GRAY
+BOARD_PERIMETER_COLOR :: rl.WHITE
+
 // NOTE: pode ser enum u16
 TetrominoType :: enum {
   I, J, L, S, O, T, Z,
@@ -174,22 +177,28 @@ tetromino_draw :: proc(t: ^Tetromino, x, y: i32) {
 
 board_frame_draw :: proc(x, y: i32) {
 
-  for i in 0..=BOARD_COLUMNS {
-    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.GRAY)
+  // TODO: mudar para `start_pos` e `end_pos`
+  rl.DrawText("Board", x, y - 25, 20, BOARD_PERIMETER_COLOR)
+
+  for i in 1..<BOARD_COLUMNS {
+    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_LINE_COLOR)
   }
 
-  for i in 0..=BOARD_LINES {
-    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), rl.GRAY)
+  for i in 1..<BOARD_LINES {
+    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), BOARD_LINE_COLOR)
   }
 
   // linha da esquerda
   rl.DrawLine(x, y, x, y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
 
   // linha da direita
-  rl.DrawLine(x + (BOARD_COLUMNS * BLOCK_SIZE), y, x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
+  rl.DrawLine(x + (BOARD_COLUMNS * BLOCK_SIZE), y, x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_PERIMETER_COLOR)
   
   // linha do fundo
-  rl.DrawLine(x, y + (BOARD_LINES * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
+  rl.DrawLine(x, y + (BOARD_LINES * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_PERIMETER_COLOR)
+
+  // linha de cima
+  rl.DrawLine(x, y, x + (BOARD_COLUMNS * BLOCK_SIZE), y, BOARD_PERIMETER_COLOR)
 
 }
 
