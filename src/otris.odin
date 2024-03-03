@@ -2,6 +2,7 @@ package otris
 
 import "core:fmt"
 import "core:strings"
+import "core:strconv"
 import "core:math/rand"
 import rl "vendor:raylib"
 
@@ -339,6 +340,16 @@ change_tetromino_draw :: proc (t: ^Maybe(Tetromino)) {
 
 }
 
+score_draw :: proc(score: u64) {
+
+  builder := strings.builder_make()
+  strings.write_string(&builder, "Score: ")
+  strings.write_u64(&builder, score)
+  str := strings.to_string(builder)
+  rl.DrawText(strings.clone_to_cstring(str), 70, 150, 20, BOARD_PERIMETER_COLOR)
+
+}
+
 handle_input :: proc () {
   if rl.IsKeyPressed(rl.KeyboardKey.SPACE) {
     for can_place(&GAME_STATE.board, &GAME_STATE.current_tetromino, GAME_STATE.tetromino_position + { 0, 1 }) {
@@ -419,6 +430,7 @@ main :: proc () {
     }
     // remover
 
+    score_draw(GAME_STATE.score)
     tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
     board_draw(&GAME_STATE.board)
     change_tetromino_draw(&GAME_STATE.change_tetromino)
