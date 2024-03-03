@@ -269,6 +269,35 @@ tetromino_next :: proc () -> Tetromino {
   return Tetromino { orientation = .LEFT, type = new_type, color = color }
 }
 
+remove_full_lines :: proc(board: ^Board) {
+  points : u64 = 0
+  for y := 0; y < BOARD_LINES; {
+    full := true
+    for x := 0; x < BOARD_COLUMNS; x += 1{
+      full &&= board.pieces[x][y] != 0
+    }
+    if full {
+      points += 1
+
+      // NOTE: esse definitivamente não é o melhor método, mas fazer o q
+      for x in 0..<BOARD_COLUMNS {
+        board.pieces[x][y] = 0
+      }
+      for i in 0..<y {
+        for x in 0..<BOARD_COLUMNS{
+          if board.pieces[x][i] != 0 {
+            board.pieces[x][i+1] = board.pieces[x][i]
+            board.pieces[x][i] = 0
+          }
+        }
+      }
+      continue
+    }
+
+    y += 1
+  }
+  GAME_STATE.score += points
+}
 
 place :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
   for x := 0; x < 4; x+=1 {
@@ -280,6 +309,7 @@ place :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
       }
     }
   }
+  remove_full_lines(board)
 
   GAME_STATE.recently_changed = false
 }
