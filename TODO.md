@@ -1,6 +1,9 @@
 
 - [x] remoção das linhas
+- [ ] init + deinit
 - [ ] score
-- [ ] proximos tetrominos
+- [x] proximos tetrominos
+- [ ] resize
+- [ ] musica
 - [ ] aumento de dificuldade
 - [ ] game over
