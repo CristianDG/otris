@@ -369,6 +369,49 @@ score_draw :: proc(score: u64) {
 
 }
 
+next_tetrominos_draw :: proc(next_tetrominos: ^queue.Queue(Tetromino)) {
+  next_tetrominos_pos := BOARD_POSITION
+  next_tetrominos_pos.x += (BOARD_COLUMNS * BLOCK_SIZE) + 50
+
+  next_tetrominos_to_display_nr :: 5
+  width  := 6 * BLOCK_SIZE
+  height := 4 * BLOCK_SIZE * next_tetrominos_to_display_nr
+
+
+  for i in 0..<5 {
+    tetromino_draw(
+      queue.get_ptr(next_tetrominos, i),
+      next_tetrominos_pos.x + BLOCK_SIZE,
+      next_tetrominos_pos.y + (i32(i) * 4 * BLOCK_SIZE) + BLOCK_SIZE)
+  }
+
+  rl.DrawRectangleLines(
+    next_tetrominos_pos.x,
+    next_tetrominos_pos.y,
+    6 * BLOCK_SIZE,
+    4 * BLOCK_SIZE * next_tetrominos_to_display_nr,
+    BOARD_PERIMETER_COLOR)
+
+  for i in 1..<6 {
+    rl.DrawLine(
+      next_tetrominos_pos.x + (i32(i) * BLOCK_SIZE),
+      next_tetrominos_pos.y,
+      next_tetrominos_pos.x + (i32(i) * BLOCK_SIZE),
+      next_tetrominos_pos.y + height,
+      BOARD_LINE_COLOR)
+  }
+
+  for i in 1..<(4 * next_tetrominos_to_display_nr) {
+    rl.DrawLine(
+      next_tetrominos_pos.x,
+      next_tetrominos_pos.y + (i32(i) * BLOCK_SIZE),
+      next_tetrominos_pos.x + width,
+      next_tetrominos_pos.y + (i32(i) * BLOCK_SIZE),
+      BOARD_LINE_COLOR)
+  }
+  rl.DrawText("Next", next_tetrominos_pos.x, next_tetrominos_pos.y - 25, 20, BOARD_PERIMETER_COLOR)
+}
+
 handle_input :: proc () {
   if rl.IsKeyPressed(rl.KeyboardKey.SPACE) {
     for can_place(&GAME_STATE.board, &GAME_STATE.current_tetromino, GAME_STATE.tetromino_position + { 0, 1 }) {
@@ -456,6 +499,7 @@ main :: proc () {
     tetromino_on_board_draw(&GAME_STATE.current_tetromino, GAME_STATE.tetromino_position)
     board_draw(&GAME_STATE.board)
     change_tetromino_draw(&GAME_STATE.change_tetromino)
+    next_tetrominos_draw(&GAME_STATE.next_tetrominos)
 
     rl.EndDrawing()
   }
