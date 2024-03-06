@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:strings"
 import "core:strconv"
 import "core:math/rand"
+import "core:container/queue"
 import rl "vendor:raylib"
 
 WINDOW_HEIGHT : i32 : 540
@@ -45,7 +46,7 @@ STARTING_TETROMINO_POSITION : TetrominoPos : {3, 0}
 GAME_STATE : struct {
   score: u64,
   board: Board,
-  next_tetrominos: [5]Tetromino,
+  next_tetrominos: queue.Queue(Tetromino),
   change_tetromino: Maybe(Tetromino),
   current_tetromino: Tetromino,
   tetromino_position: TetrominoPos,
@@ -272,12 +273,8 @@ tetromino_random :: proc () -> Tetromino {
 
 tetromino_next :: proc () -> Tetromino {
   
-  next := GAME_STATE.next_tetrominos[0]
-  for i := 0; i < len(GAME_STATE.next_tetrominos) - 2; i+=1{
-    GAME_STATE.next_tetrominos[i] = GAME_STATE.next_tetrominos[i+1]
-  }
-
-  GAME_STATE.next_tetrominos[len(GAME_STATE.next_tetrominos)-1] = tetromino_random()
+  next := queue.pop_front(&GAME_STATE.next_tetrominos)
+  queue.push_back(&GAME_STATE.next_tetrominos, tetromino_random())
 
   return next
 }
@@ -425,8 +422,8 @@ main :: proc () {
   rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OTris")
   defer rl.CloseWindow()
 
-  for i in 0..<len(GAME_STATE.next_tetrominos) {
-    GAME_STATE.next_tetrominos[i] = tetromino_random()
+  for i in 0..<10 {
+    queue.push_back(&GAME_STATE.next_tetrominos, tetromino_random())
   }
   GAME_STATE.current_tetromino = tetromino_next()
 
