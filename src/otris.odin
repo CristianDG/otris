@@ -468,15 +468,19 @@ handle_input :: proc () {
   }
 }
 
+game_state_init :: proc() {
+  for i in 0..<10 {
+    queue.push_back(&GAME_STATE.next_tetrominos, tetromino_random())
+  }
+  GAME_STATE.current_tetromino = tetromino_next()
+}
+
 main :: proc () {
 
   rl.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "OTris")
   defer rl.CloseWindow()
 
-  for i in 0..<10 {
-    queue.push_back(&GAME_STATE.next_tetrominos, tetromino_random())
-  }
-  GAME_STATE.current_tetromino = tetromino_next()
+  game_state_init()
 
   rl.SetTargetFPS(60)
   for !rl.WindowShouldClose() {
