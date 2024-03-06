@@ -326,11 +326,15 @@ place :: proc (board: ^Board, t: ^Tetromino, pos: [2]i32){
 
 change_tetromino_draw :: proc (t: ^Maybe(Tetromino)) {
   change_tetromino, ok := t.?
-  starting_pos := [2]i32{70, 50}
+  starting_pos := BOARD_POSITION - [2]i32{190, 0}
   ending_pos := starting_pos + {6 * BLOCK_SIZE, 4 * BLOCK_SIZE}
 
   if ok {
-    tetromino_draw(&Tetromino{ type = change_tetromino.type, color = change_tetromino.color }, starting_pos.x + BLOCK_SIZE, starting_pos.y + BLOCK_SIZE)
+    tetromino_draw(
+      &Tetromino{ type = change_tetromino.type,
+      color = change_tetromino.color },
+      starting_pos.x + BLOCK_SIZE,
+      starting_pos.y + BLOCK_SIZE)
   }
 
   rl.DrawText("Change", starting_pos.x, starting_pos.y - 25, 20, BOARD_PERIMETER_COLOR)
@@ -365,15 +369,19 @@ score_draw :: proc(score: u64) {
   strings.write_string(&builder, "Score: ")
   strings.write_u64(&builder, score)
   str := strings.to_string(builder)
-  rl.DrawText(strings.clone_to_cstring(str), 70, 150, 20, BOARD_PERIMETER_COLOR)
+  rl.DrawText(
+    strings.clone_to_cstring(str),
+    BOARD_POSITION.x - 190,
+    BOARD_POSITION.y + 100,
+    20,
+    BOARD_PERIMETER_COLOR)
 
 }
 
 next_tetrominos_draw :: proc(next_tetrominos: ^queue.Queue(Tetromino)) {
-  next_tetrominos_pos := BOARD_POSITION
-  next_tetrominos_pos.x += (BOARD_COLUMNS * BLOCK_SIZE) + 50
-
+  next_tetrominos_pos := BOARD_POSITION + [2]i32{(BOARD_COLUMNS * BLOCK_SIZE) + 50, 0}
   next_tetrominos_to_display_nr :: 5
+
   width  := 6 * BLOCK_SIZE
   height := 4 * BLOCK_SIZE * next_tetrominos_to_display_nr
 
@@ -480,8 +488,6 @@ main :: proc () {
       GAME_STATE.simulation_cooldown = 0
       step(&GAME_STATE.board, &GAME_STATE.current_tetromino, &GAME_STATE.tetromino_position)
     }
-
-    // NOTE: simular
 
     rl.BeginDrawing()
     rl.ClearBackground(rl.BLACK)
