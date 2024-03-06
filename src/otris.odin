@@ -185,25 +185,22 @@ board_frame_draw :: proc(x, y: i32) {
   // TODO: mudar para `start_pos` e `end_pos`
   rl.DrawText("Board", x, y - 25, 20, BOARD_PERIMETER_COLOR)
 
+  width := BOARD_COLUMNS * BLOCK_SIZE
+  height := BOARD_LINES * BLOCK_SIZE
+
   for i in 1..<BOARD_COLUMNS {
-    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_LINE_COLOR)
+    rl.DrawLine(x + (i32(i) * BLOCK_SIZE), y, x + (i32(i) * BLOCK_SIZE), y + height, BOARD_LINE_COLOR)
   }
 
   for i in 1..<BOARD_LINES {
-    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (i32(i) * BLOCK_SIZE), BOARD_LINE_COLOR)
+    rl.DrawLine(x, y + (i32(i) * BLOCK_SIZE), x + width, y + (i32(i) * BLOCK_SIZE), BOARD_LINE_COLOR)
   }
 
-  // linha da esquerda
-  rl.DrawLine(x, y, x, y + (BOARD_LINES * BLOCK_SIZE), rl.WHITE)
+  rl.DrawRectangleLines(
+    x, y,
+    width, height,
+    BOARD_PERIMETER_COLOR)
 
-  // linha da direita
-  rl.DrawLine(x + (BOARD_COLUMNS * BLOCK_SIZE), y, x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_PERIMETER_COLOR)
-  
-  // linha do fundo
-  rl.DrawLine(x, y + (BOARD_LINES * BLOCK_SIZE), x + (BOARD_COLUMNS * BLOCK_SIZE), y + (BOARD_LINES * BLOCK_SIZE), BOARD_PERIMETER_COLOR)
-
-  // linha de cima
-  rl.DrawLine(x, y, x + (BOARD_COLUMNS * BLOCK_SIZE), y, BOARD_PERIMETER_COLOR)
 
 }
 
